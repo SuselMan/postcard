@@ -23,11 +23,17 @@
 </script>
 <link rel="stylesheet" href="style.css" />
 <style>
+	body {
+		background-color: black;
+	}
   #animation_container {
 	position:absolute;
 	margin:auto;
 	left:0;right:0;
 	top:0;bottom:0;
+  }
+  #canvas {
+	  position: absolute;
   }
 </style>
 <script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
@@ -65,7 +71,7 @@ function handleComplete(evt,comp) {
 		createjs.Ticker.addEventListener("tick", stage);
 	}
 	//Code to support hidpi screens and responsive scaling.
-	AdobeAn.makeResponsive(false,'both',false,1,[canvas,anim_container,dom_overlay_container]);
+	// AdobeAn.makeResponsive(false,'both',false,1,[canvas,anim_container,dom_overlay_container]);
 	AdobeAn.compositionLoaded(lib.properties.id);
 	fnStartAnimation();
 }
@@ -75,7 +81,7 @@ function playSound(id, loop) {
 <!-- write your code here -->
 </head>
 <body onload="init();" style="margin:0px;">
-	<div id="animation_container" style="background-color:rgba(255, 255, 255, 1.00); width:1920px; height:1080px">
+	<div id="animation_container">
 		<canvas id="canvas" width="1920" height="1080" style="position: absolute; display: block; background-color:rgba(255, 255, 255, 1.00);"></canvas>
 		<div id="dom_overlay_container" style="pointer-events:none; overflow:hidden; width:1920px; height:1080px; position: absolute; left: 0px; top: 0px; display: block;">
 		</div>

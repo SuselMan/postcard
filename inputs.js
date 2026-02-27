@@ -98,6 +98,26 @@ window.game = (() => {
     initWave(w);
   };
   let musicStarted = false;
+
+  const resizeCanvas = () => {
+
+    const canvas = stage.parent.parent.canvas
+
+    const w = SCENE_WIDTH;
+    const h = SCENE_HEIGHT;
+
+    const iw = window.innerWidth;
+    const ih = window.innerHeight;
+
+    const scale = Math.min(iw / w, ih / h);
+
+    canvas.style.width = w * scale + "px";
+    canvas.style.height = h * scale + "px";
+
+    canvas.style.position = "absolute";
+    canvas.style.left = (iw - w * scale) / 2 + "px";
+    canvas.style.top  = (ih - h * scale) / 2 + "px";
+  }
   // ---------- Public ----------
   const init = (s, l, c) => {
     lib = l;
@@ -154,6 +174,8 @@ window.game = (() => {
     stage.frog.flower.visible = false;
     stage.final_text.visible = false;
     isInited = true;
+    window.addEventListener("resize", resizeCanvas);
+    resizeCanvas();
   };
 
   const runFinal = () => {
