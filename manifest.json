@@ -1,6 +1,6 @@
 {
-  "name": "300x600",
-  "short_name": "300x600",
+  "name": "Postcard",
+  "short_name": "Postcard",
   "description": "Postcard",
   "start_url": "./300x600.html",
   "scope": "./",
