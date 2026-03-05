@@ -371,7 +371,7 @@ window.game = (() => {
   const setScore = (val) => {
     stage.score.arrow.rotation = val*(180/6) - 90;
     currentScore = val;
-    if(currentScore >= 6) {
+    if(currentScore >= 5) {
       gameOver = true;
       runFinal();
     }

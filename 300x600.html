@@ -10,9 +10,16 @@
 <html>
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="authoring-tool" content="Adobe_Animate_CC">
 <title>300x600</title>
 <meta name="ad.size" content="width=1920,height=1080">
+<!-- PWA: только горизонтальная ориентация -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-fullscreen">
+<meta name="mobile-web-app-capable" content="yes">
 <!-- write your code here -->
 <script>
 	function sendEvent (name, phone) {
@@ -131,6 +138,16 @@ function playSound(id, loop) {
 <!-- write your code here -->
 </head>
 <body onload="init();" style="margin:0px;">
+<script>
+	// Блокировка альбомной ориентации в PWA (где поддерживается)
+	(function lockLandscape() {
+		if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+			if (screen.orientation && typeof screen.orientation.lock === 'function') {
+				screen.orientation.lock('landscape').catch(function() {});
+			}
+		}
+	})();
+</script>
 	<div class="preloader">
 		<div class="preloader-text">Ща все будет, обожжи...</div>
 		<div class="preloader-container">
