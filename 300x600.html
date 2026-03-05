@@ -34,6 +34,35 @@
   }
   #canvas {
 	  position: absolute;
+	  background-color: #403040;
+  }
+  .preloader {
+	  position: absolute;
+	  left: 50%;
+	  top: 50%;
+	  transform: translate(-50%,-50%);
+	  z-index: 999999;
+	  display: flex;
+	  flex-direction: column;
+	  justify-content: center;
+	  align-items: center;
+	  color: wheat;
+	  gap: 24px;
+	  font-family: Roboto, Arial;
+	  font-size: 20px;
+  }
+  .preloader-container {
+	  min-width: 300px;
+	  min-height: 40px;
+	  border: 1px solid wheat;
+	  display: flex;
+	  justify-content: left;
+  }
+  .preloader-line {
+	  width: 0;
+	  flex-grow: 0;
+	  background-color: wheat;
+	  transition: width 0.1s ease-out;
   }
 </style>
 <script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
@@ -47,11 +76,32 @@ function init() {
 	dom_overlay_container = document.getElementById("dom_overlay_container");
 	var comp=AdobeAn.getComposition("C2C4BF85976E4BEFBB549C8FDB1F73FC");
 	var lib=comp.getLibrary();
+
+	const texts = ['Ща все будет обожжи...', 'Да грузится емана...', 'Уже почти...', 'Ииииииии....', 'Еще чуть-чуть :)', 'Начинаем через 3', 'Начинаем через 2', 'Начинаем через 1', 'Начинаем через 0', 'Начинаем через -1', 'Короче щас загрузится...']
+	let currentTextIndex = 0;
+	const interval = setInterval(() => {
+		if(currentTextIndex < texts.length - 2) {
+			currentTextIndex += 1;
+			const elm = document.querySelector('.preloader-text');
+			elm.innerHTML = texts[currentTextIndex]
+		}
+	}, 3000)
+
 	var loader = new createjs.LoadQueue(false);
 	loader.installPlugin(createjs.Sound);
-	loader.addEventListener("complete", function(evt){handleComplete(evt,comp)});
+	loader.addEventListener("complete", function(evt){
+		handleComplete(evt,comp);
+		clearInterval(interval);
+		const t = document.querySelector(".preloader");
+		t.style.display = 'none';
+	});
 	var lib=comp.getLibrary();
 	loader.loadManifest(lib.properties.manifest);
+	loader.on("progress", (e) => {
+		const pct = Math.round(e.progress * 100);
+		const t = document.querySelector(".preloader-line");
+		t.style.width = `${pct}%`;
+	});
 }
 function handleComplete(evt,comp) {
 	//This function is always called, irrespective of the content. You can use the variable "stage" after it is created in token create_stage.
@@ -81,8 +131,16 @@ function playSound(id, loop) {
 <!-- write your code here -->
 </head>
 <body onload="init();" style="margin:0px;">
+	<div class="preloader">
+		<div class="preloader-text">Ща все будет, обожжи...</div>
+		<div class="preloader-container">
+			<div class="preloader-line">
+
+			</div>
+		</div>
+	</div>
 	<div id="animation_container">
-		<canvas id="canvas" width="1920" height="1080" style="position: absolute; display: block; background-color:rgba(255, 255, 255, 1.00);"></canvas>
+		<canvas id="canvas" width="1920" height="1080" style="position: absolute; display: block;"></canvas>
 		<div id="dom_overlay_container" style="pointer-events:none; overflow:hidden; width:1920px; height:1080px; position: absolute; left: 0px; top: 0px; display: block;">
 		</div>
 	</div>

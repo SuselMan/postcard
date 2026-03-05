@@ -45,6 +45,13 @@ window.game = (() => {
     bottle: 0,
   }
 
+  const isMobile = () => {
+    return (
+      navigator.maxTouchPoints > 0 ||
+      window.matchMedia("(pointer: coarse)").matches
+    );
+  };
+
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
 
   const approachZero = (v, amount) => {
@@ -101,7 +108,7 @@ window.game = (() => {
 
   const resizeCanvas = () => {
 
-    const canvas = stage.parent.parent.canvas
+    const canvas = document.querySelector('canvas');
 
     const w = SCENE_WIDTH;
     const h = SCENE_HEIGHT;
@@ -118,6 +125,12 @@ window.game = (() => {
     canvas.style.left = (iw - w * scale) / 2 + "px";
     canvas.style.top  = (ih - h * scale) / 2 + "px";
   }
+
+  window.addEventListener("load", (event) => {
+    resizeCanvas();
+  });
+
+
   // ---------- Public ----------
   const init = (s, l, c) => {
     lib = l;
