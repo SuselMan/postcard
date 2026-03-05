@@ -151,12 +151,26 @@ function playSound(id, loop) {
 </head>
 <body onload="init();" style="margin:0px;">
 <script>
-	// Блокировка альбомной ориентации в PWA (где поддерживается)
-	(function lockLandscape() {
-		if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
-			if (screen.orientation && typeof screen.orientation.lock === 'function') {
-				screen.orientation.lock('landscape').catch(function() {});
+	// PWA: альбомная ориентация и полноэкран (скрыть статус-бар и навигацию)
+	(function pwaFullscreen() {
+		var isPWA = window.matchMedia('(display-mode: standalone)').matches ||
+			window.matchMedia('(display-mode: fullscreen)').matches ||
+			window.navigator.standalone === true;
+		if (isPWA && screen.orientation && typeof screen.orientation.lock === 'function') {
+			screen.orientation.lock('landscape').catch(function() {});
+		}
+		// На части Android полный экран только по жесту — запрашиваем по первому касанию, если ещё не в fullscreen
+		if (isPWA && !window.matchMedia('(display-mode: fullscreen)').matches) {
+			function requestFullscreen() {
+				var el = document.documentElement;
+				if (el.requestFullscreen) el.requestFullscreen();
+				else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+				else if (el.msRequestFullscreen) el.msRequestFullscreen();
+				document.removeEventListener('click', requestFullscreen);
+				document.removeEventListener('touchstart', requestFullscreen, { passive: true });
 			}
+			document.addEventListener('click', requestFullscreen, { once: true });
+			document.addEventListener('touchstart', requestFullscreen, { once: true, passive: true });
 		}
 	})();
 </script>

@@ -4,7 +4,7 @@
   "description": "Postcard",
   "start_url": "./300x600.html",
   "scope": "./",
-  "display": "standalone",
+  "display": "fullscreen",
   "orientation": "landscape",
   "background_color": "#000000",
   "theme_color": "#000000",
