@@ -37,6 +37,17 @@ window.game = (() => {
   let currentScore = 0;
   let gameOver = false;
 
+  // touch stick (mobile)
+  const STICK_RADIUS = 260;
+  const STICK_CENTER_X = 130.85;
+  const STICK_CENTER_Y = 130.1;
+  let stickActive = false;
+  let stickTouchId = null;
+  let stickBaseX = 0;
+  let stickBaseY = 0;
+  let stickInputX = 0;
+  let stickInputY = 0;
+
   const tsongedObjects = {
     belka: 0,
     pol: 0,
@@ -46,10 +57,11 @@ window.game = (() => {
   }
 
   const isMobile = () => {
-    return (
-      navigator.maxTouchPoints > 0 ||
-      window.matchMedia("(pointer: coarse)").matches
-    );
+    const ua = navigator.userAgent || "";
+    const mobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|mobile/i.test(ua);
+    const narrow = window.innerWidth <= 1024;
+    const hasTouch = navigator.maxTouchPoints > 0 || window.matchMedia("(pointer: coarse)").matches;
+    return mobileUA || (hasTouch && narrow);
   };
 
   const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
@@ -124,7 +136,20 @@ window.game = (() => {
     canvas.style.position = "absolute";
     canvas.style.left = (iw - w * scale) / 2 + "px";
     canvas.style.top  = (ih - h * scale) / 2 + "px";
-  }
+  };
+
+  // client coords -> stage (exportRoot) coords 0..SCENE_WIDTH, 0..SCENE_HEIGHT
+  const clientToStage = (clientX, clientY) => {
+    const canvas = document.querySelector('canvas');
+    if (!canvas) return { x: 0, y: 0 };
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = SCENE_WIDTH / rect.width;
+    const scaleY = SCENE_HEIGHT / rect.height;
+    return {
+      x: (clientX - rect.left) * scaleX,
+      y: (clientY - rect.top) * scaleY
+    };
+  };
 
   window.addEventListener("load", (event) => {
     resizeCanvas();
@@ -151,12 +176,15 @@ window.game = (() => {
             loop: -1,
             volume: 0.6
           });
-          createjs.Tween.get(stage.tutorial)
-            .to(
-              { alpha: 0 },
-              800,
-              createjs.Ease.quadOut
-            );
+          const tutorialToHide = isMobile() && stage.tutorial_touch ? stage.tutorial_touch : stage.tutorial;
+          if (tutorialToHide) {
+            createjs.Tween.get(tutorialToHide)
+              .to(
+                { alpha: 0 },
+                800,
+                createjs.Ease.quadOut
+              );
+          }
           musicStarted = true;
         }
 
@@ -173,7 +201,88 @@ window.game = (() => {
       { passive: false }
     );
 
+    // touch stick (mobile)
+    if (isMobile() && stage.stick) {
+      const canvas = document.querySelector('canvas');
+      const onTouchStart = (e) => {
+        if (stickActive || !e.changedTouches || !e.changedTouches.length) return;
+        const t = e.changedTouches[0];
+        const p = clientToStage(t.clientX, t.clientY);
+        stickTouchId = t.identifier;
+        stickBaseX = p.x;
+        stickBaseY = p.y;
+        stickActive = true;
+        stage.stick.x = stickBaseX;
+        stage.stick.y = stickBaseY;
+        stage.stick.visible = true;
+        stage.setChildIndex(stage.stick, stage.numChildren - 1);
+        stage.stick.circle.x = STICK_CENTER_X;
+        stage.stick.circle.y = STICK_CENTER_Y;
+        stickInputX = 0;
+        stickInputY = 0;
+        if (!musicStarted) {
+          gameObjects.push(stage.belka);
+          startMusic();
+          lipsInstance = createjs.Sound.play("lips", { loop: -1, volume: 0.6 });
+          if (stage.tutorial_touch) {
+            createjs.Tween.get(stage.tutorial_touch).to({ alpha: 0 }, 800, createjs.Ease.quadOut);
+          }
+          musicStarted = true;
+        }
+      };
+      const onTouchMove = (e) => {
+        if (!stickActive || stickTouchId == null) return;
+        const t = Array.from(e.changedTouches).find((x) => x.identifier === stickTouchId);
+        if (!t) return;
+        e.preventDefault();
+        const p = clientToStage(t.clientX, t.clientY);
+        let dx = p.x - stickBaseX;
+        let dy = p.y - stickBaseY;
+        const len = Math.hypot(dx, dy);
+        if (len > STICK_RADIUS) {
+          const k = STICK_RADIUS / len;
+          dx *= k;
+          dy *= k;
+        }
+        stage.stick.circle.x = STICK_CENTER_X + dx;
+        stage.stick.circle.y = STICK_CENTER_Y + dy;
+        stickInputX = len > 0 ? dx / STICK_RADIUS : 0;
+        stickInputY = len > 0 ? dy / STICK_RADIUS : 0;
+      };
+      const onTouchEnd = (e) => {
+        const t = Array.from(e.changedTouches).find((x) => x.identifier === stickTouchId);
+        if (t || e.touches.length === 0) {
+          stickActive = false;
+          stickTouchId = null;
+          stickInputX = 0;
+          stickInputY = 0;
+          stage.stick.visible = false;
+          stage.stick.circle.x = STICK_CENTER_X;
+          stage.stick.circle.y = STICK_CENTER_Y;
+        }
+      };
+      canvas.addEventListener("touchstart", onTouchStart, { passive: true });
+      canvas.addEventListener("touchmove", onTouchMove, { passive: false });
+      canvas.addEventListener("touchend", onTouchEnd, { passive: true });
+      canvas.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    }
+
     spawnWavesRandom(WAVE_COUNT);
+
+    // tutorial: на мобиле показываем tutorial_touch, иначе tutorial
+    if (isMobile()) {
+      if (stage.tutorial) stage.tutorial.visible = false;
+      if (stage.tutorial_touch) stage.tutorial_touch.visible = true;
+      if (stage.stick) {
+        stage.stick.visible = false;
+        stage.stick.circle.x = STICK_CENTER_X;
+        stage.stick.circle.y = STICK_CENTER_Y;
+      }
+    } else {
+      if (stage.tutorial_touch) stage.tutorial_touch.visible = false;
+      if (stage.tutorial) stage.tutorial.visible = true;
+      if (stage.stick) stage.stick.visible = false;
+    }
 
     // гарантируем, что frog поверх волн (если frog уже на сцене)
     if (stage.frog) stage.setChildIndex(stage.frog, stage.numChildren - 1);
@@ -410,13 +519,16 @@ window.game = (() => {
 
   // ---------- Frog ----------
   const handleArrows = (k) => {
-    const ax =
+    let ax =
       (keys[ArrowKeys.ArrowRight] ? 1 : 0) -
       (keys[ArrowKeys.ArrowLeft] ? 1 : 0);
-
-    const ay =
+    let ay =
       (keys[ArrowKeys.ArrowDown] ? 1 : 0) -
       (keys[ArrowKeys.ArrowUp] ? 1 : 0);
+    if (stickActive) {
+      ax += stickInputX;
+      ay += stickInputY;
+    }
 
     if (ax !== 0) vx += ax * ACC * k;
     if (ay !== 0) vy += ay * ACC * k;
@@ -427,8 +539,12 @@ window.game = (() => {
   };
 
   const applyWaterFriction = (k) => {
-    const axPressed = keys[ArrowKeys.ArrowLeft] || keys[ArrowKeys.ArrowRight];
-    const ayPressed = keys[ArrowKeys.ArrowUp] || keys[ArrowKeys.ArrowDown];
+    let axPressed = keys[ArrowKeys.ArrowLeft] || keys[ArrowKeys.ArrowRight];
+    let ayPressed = keys[ArrowKeys.ArrowUp] || keys[ArrowKeys.ArrowDown];
+    if (stickActive) {
+      axPressed = axPressed || stickInputX !== 0;
+      ayPressed = ayPressed || stickInputY !== 0;
+    }
 
     if (!axPressed) vx = approachZero(vx, BACK_ACC * k);
     if (!ayPressed) vy = approachZero(vy, BACK_ACC * k);
@@ -442,22 +558,23 @@ window.game = (() => {
     frog.y += vy;
 
     // смена анимации/позы
-    if (keys[ArrowKeys.ArrowRight]) {
+    const movingRight = keys[ArrowKeys.ArrowRight] || (stickActive && stickInputX > 0.1);
+    const movingLeft = keys[ArrowKeys.ArrowLeft] || (stickActive && stickInputX < -0.1);
+    if (movingRight) {
       if(frog.direction === 'left') {
         frog.gotoAndStop("left");
         frog.play()
         frog.direction = 'right';
       }
-    } else if (keys[ArrowKeys.ArrowLeft]) {
+    } else if (movingLeft) {
       if(frog.direction === 'right') {
         frog.gotoAndStop("right");
         frog.play()
         frog.direction = 'left';
       }
-
     }
 
-    const isMoving = Object.values(keys).some(Boolean);
+    const isMoving = Object.values(keys).some(Boolean) || (stickActive && (Math.abs(stickInputX) > 0.05 || Math.abs(stickInputY) > 0.05));
 
     if(!isMoving && Math.abs(vy) < 0.1 ) {
       frog.y += Math.sin(t/100);
@@ -474,7 +591,9 @@ window.game = (() => {
 
 
   const updateLipsSound = () => {
-    const isMoving = Object.values(keys).some(Boolean);
+    const isMoving =
+      Object.values(keys).some(Boolean) ||
+      (stickActive && (Math.abs(stickInputX) > 0.05 || Math.abs(stickInputY) > 0.05));
 
     if (isMoving) {
       // если уже играет — не запускаем заново
